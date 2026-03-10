@@ -1,33 +1,8 @@
-export type UserRole =
-  | 'SUPER_ADMIN'
-  | 'ADMIN'
-  | 'OPS_MANAGER'
-  | 'DISPATCHER'
-  | 'DRIVER'
-  | 'BILLING_ADMIN'
-  | 'VIEWER'
-
-export interface LoginRequest {
-  email: string
-  password: string
-}
-
-export interface LoginResponse {
-  access_token: string
-  refresh_token: string
-  user: {
-    id: string
-    name: string
-    email: string
-    roles: UserRole[]
-  }
-}
-
 export interface AuthUser {
   id: string
-  name: string
+  name: string | null
   email: string
-  roles: UserRole[]
+  roles: string[]
 }
 
 export interface AuthState {
@@ -35,4 +10,20 @@ export interface AuthState {
   accessToken: string | null
   isAuthenticated: boolean
   isLoading: boolean
+}
+
+export interface LoginRequest {
+  email?: string
+  password?: string
+  mfa_token?: string
+  totp_code?: string
+}
+
+export interface LoginResponse {
+  access_token: string
+  refresh_token: string
+  user: AuthUser
+  // MFA step
+  mfa_required?: boolean
+  mfa_token?: string
 }
