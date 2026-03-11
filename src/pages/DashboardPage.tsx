@@ -1,14 +1,11 @@
 import { useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import UsersPage from './UsersPage.tsx'
+import UsersPage from './UsersPage'
+import RolesPage from './RolesPage'
 import { Button } from '@/components/ui/button'
-import { Users, LogOut, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Users, LogOut, ChevronLeft, ChevronRight, Shield } from 'lucide-react'
 
-type NavItem = 'users'
-
-const NAV_ITEMS: { key: NavItem; label: string; icon: React.ReactNode }[] = [
-  { key: 'users', label: 'Users', icon: <Users className="w-4 h-4 shrink-0" /> },
-]
+type NavItem = 'users' | 'roles'
 
 export default function DashboardPage() {
   const { user, logout } = useAuth()
@@ -16,6 +13,18 @@ export default function DashboardPage() {
   const [collapsed, setCollapsed] = useState(false)
 
   const initials = (user?.name ?? user?.email ?? 'U')[0].toUpperCase()
+
+  const isAdminOrSuper = user?.roles?.some(r => r === 'SUPER_ADMIN' || r === 'ADMIN') ?? false
+
+  const NAV_ITEMS: { key: NavItem; label: string; hidden?: boolean }[] = [
+    { key: 'users', label: 'Users' },
+    { key: 'roles', label: 'Roles', hidden: !isAdminOrSuper },
+  ]
+
+  const NAV_ICONS: Record<NavItem, (active: boolean) => React.ReactNode> = {
+    users: (active) => <Users  className={`w-4 h-4 shrink-0 ${active ? 'text-primary' : ''}`} />,
+    roles: (active) => <Shield className={`w-4 h-4 shrink-0 ${active ? 'text-primary' : ''}`} />,
+  }
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
@@ -48,23 +57,25 @@ export default function DashboardPage() {
 
         {/* Nav */}
         <nav className="flex flex-col gap-1 flex-1 p-2 pt-3">
-          {NAV_ITEMS.map(item => (
-            <button
-              key={item.key}
-              onClick={() => setActiveNav(item.key)}
-              title={collapsed ? item.label : undefined}
-              className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors w-full text-left
-                ${collapsed ? 'justify-center' : ''}
-                ${activeNav === item.key
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                }
-              `}
-            >
-              {item.icon}
-              {!collapsed && <span>{item.label}</span>}
-            </button>
-          ))}
+          {NAV_ITEMS.filter(item => !item.hidden).map(item => {
+            const isActive = activeNav === item.key
+            return (
+              <button
+                key={item.key}
+                onClick={() => setActiveNav(item.key)}
+                title={collapsed ? item.label : undefined}
+                style={isActive ? { backgroundColor: 'hsl(var(--primary) / 0.1)', color: 'hsl(var(--primary))' } : {}}
+                className={[
+                  'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors w-full text-left',
+                  collapsed ? 'justify-center' : '',
+                  isActive ? '' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                ].join(' ')}
+              >
+                {NAV_ICONS[item.key](isActive)}
+                {!collapsed && <span>{item.label}</span>}
+              </button>
+            )
+          })}
         </nav>
 
         {/* Footer */}
@@ -98,8 +109,9 @@ export default function DashboardPage() {
       </aside>
 
       {/* ── Main ── */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-hidden flex flex-col">
         {activeNav === 'users' && <UsersPage />}
+        {activeNav === 'roles' && isAdminOrSuper && <RolesPage />}
       </main>
     </div>
   )
