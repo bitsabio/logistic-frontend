@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search, Loader2, ShieldCheck, UserX, UserCheck } from 'lucide-react'
+import { Search, Loader2, ShieldCheck, UserX, UserCheck, ShieldOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -52,6 +52,8 @@ const STATUS_VARIANT: Record<UserListItem['status'], string> = {
   pending_verification: 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-400 dark:border-yellow-800',
   deleted:              'bg-muted text-muted-foreground border-border',
 }
+
+const isSuperAdmin = (user: UserListItem) => user.roles.includes('SUPER_ADMIN')
 
 // ── Small components ─────────────────────────────────────────────────────────
 
@@ -125,7 +127,7 @@ function RoleModal({
 
   return (
     <Dialog open={open} onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg backdrop-blur-md bg-white/80 border border-white/40 shadow-2xl shadow-black/20 ring-1 ring-black/5">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-primary" />
@@ -221,7 +223,7 @@ function ConfirmStatusModal({
 
   return (
     <Dialog open={open} onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm backdrop-blur-md bg-white/80 border border-white/40 shadow-2xl shadow-black/20 ring-1 ring-black/5">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {isSuspend
@@ -405,37 +407,43 @@ export default function UsersPage() {
 
                   <TableCell>
                     <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setRoleModalUser(user)}
-                      >
-                        <ShieldCheck className="w-3.5 h-3.5 mr-1.5" />
-                        Roles
-                      </Button>
+                      {isSuperAdmin(user) ? (
+                        <span className="text-[11px] text-muted-foreground/50 font-mono px-2">protected</span>
+                      ) : (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setRoleModalUser(user)}
+                          >
+                            <ShieldCheck className="w-3.5 h-3.5 mr-1.5" />
+                            Roles
+                          </Button>
 
-                      {user.status === 'active' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => setStatusModal({ user, action: 'suspended' })}
-                        >
-                          <UserX className="w-3.5 h-3.5 mr-1.5" />
-                          Suspend
-                        </Button>
-                      )}
+                          {user.status === 'active' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+                              onClick={() => setStatusModal({ user, action: 'suspended' })}
+                            >
+                              <UserX className="w-3.5 h-3.5 mr-1.5" />
+                              Suspend
+                            </Button>
+                          )}
 
-                      {user.status === 'suspended' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-green-600 border-green-600/30 hover:bg-green-600/10 hover:text-green-600"
-                          onClick={() => setStatusModal({ user, action: 'active' })}
-                        >
-                          <UserCheck className="w-3.5 h-3.5 mr-1.5" />
-                          Activate
-                        </Button>
+                          {user.status === 'suspended' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-green-600 border-green-600/30 hover:bg-green-600/10 hover:text-green-600"
+                              onClick={() => setStatusModal({ user, action: 'active' })}
+                            >
+                              <UserCheck className="w-3.5 h-3.5 mr-1.5" />
+                              Activate
+                            </Button>
+                          )}
+                        </>
                       )}
                     </div>
                   </TableCell>
