@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search, Loader2, ShieldCheck, UserX, UserCheck, ShieldOff } from 'lucide-react'
+import { Search, Loader2, ShieldCheck, UserX, UserCheck, ShieldOff, ShieldAlert, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -346,8 +346,35 @@ export default function UsersPage() {
 
         {/* Error state */}
         {!loading && error && (
-          <div className="flex items-center justify-center py-16 text-destructive text-sm">
-            {error}
+          <div className="flex flex-col items-center justify-center py-24 px-6 text-center gap-4">
+            {error.toLowerCase().includes('permission') ? (
+              <>
+                <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
+                  <ShieldAlert className="w-7 h-7 text-muted-foreground" />
+                </div>
+                <div className="space-y-1.5 max-w-xs">
+                  <p className="text-base font-semibold text-foreground">Access restricted</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    You don't have permission to view this section. Contact your administrator to request access.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
+                  <AlertTriangle className="w-7 h-7 text-muted-foreground" />
+                </div>
+                <div className="space-y-1.5 max-w-xs">
+                  <p className="text-base font-semibold text-foreground">Something went wrong</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    We couldn't load the users list. Try refreshing the page.
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => fetchUsers(1, '')}>
+                  Retry
+                </Button>
+              </>
+            )}
           </div>
         )}
 
