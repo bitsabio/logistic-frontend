@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import UsersPage from './UsersPage'
 import RolesPage from './RolesPage'
+import CustomersPage from './CustomersPage'
 import { Button } from '@/components/ui/button'
-import { Users, LogOut, ChevronLeft, ChevronRight, Shield } from 'lucide-react'
+import { Users, LogOut, ChevronLeft, ChevronRight, Shield, Briefcase } from 'lucide-react'
 
-type NavItem = 'users' | 'roles'
+type NavItem = 'users' | 'roles' | 'customers'
 
 export default function DashboardPage() {
   const { user, logout } = useAuth()
@@ -17,13 +18,17 @@ export default function DashboardPage() {
   const isAdminOrSuper = user?.roles?.some(r => r === 'SUPER_ADMIN' || r === 'ADMIN') ?? false
 
   const NAV_ITEMS: { key: NavItem; label: string; hidden?: boolean }[] = [
-    { key: 'users', label: 'Users' },
+    { key: 'users', label: 'Users', hidden: !isAdminOrSuper },
     { key: 'roles', label: 'Roles', hidden: !isAdminOrSuper },
+    { key: 'customers', label: 'Customers', hidden: !isAdminOrSuper },
   ]
+
+  const visibleNavItems = NAV_ITEMS.filter(item => !item.hidden)
 
   const NAV_ICONS: Record<NavItem, (active: boolean) => React.ReactNode> = {
     users: (active) => <Users  className={`w-4 h-4 shrink-0 ${active ? 'text-primary' : ''}`} />,
     roles: (active) => <Shield className={`w-4 h-4 shrink-0 ${active ? 'text-primary' : ''}`} />,
+    customers: (active) => <Briefcase className={`w-4 h-4 shrink-0 ${active ? 'text-primary' : ''}`} />,
   }
 
   return (
@@ -57,7 +62,7 @@ export default function DashboardPage() {
 
         {/* Nav */}
         <nav className="flex flex-col gap-1 flex-1 p-2 pt-3">
-          {NAV_ITEMS.filter(item => !item.hidden).map(item => {
+          {visibleNavItems.map(item => {
             const isActive = activeNav === item.key
             return (
               <button
@@ -110,8 +115,29 @@ export default function DashboardPage() {
 
       {/* ── Main ── */}
       <main className="flex-1 overflow-hidden flex flex-col">
-        {activeNav === 'users' && <UsersPage />}
-        {activeNav === 'roles' && isAdminOrSuper && <RolesPage />}
+        {visibleNavItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center px-6">
+            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
+              <Shield className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <div className="space-y-1.5 max-w-sm">
+              <p className="text-base font-semibold text-foreground">No access yet</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Your role <span className="font-mono font-medium text-foreground">{user?.roles?.[0] ?? 'unknown'}</span> doesn't have permissions to any section of this panel yet. Contact your administrator to get access.
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={logout} className="gap-2 mt-1">
+              <LogOut className="w-3.5 h-3.5" />
+              Sign out
+            </Button>
+          </div>
+        ) : (
+          <>
+            {activeNav === 'users' && isAdminOrSuper && <UsersPage />}
+            {activeNav === 'roles' && isAdminOrSuper && <RolesPage />}
+            {activeNav === 'customers' && isAdminOrSuper && <CustomersPage />}
+          </>
+        )}
       </main>
     </div>
   )
