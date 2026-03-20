@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Package, ShoppingCart, ClipboardList, LogOut, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import ProductsPage from './ProductsPage.tsx'
-import CartPage from './CartPage.tsx'
-import OrdersPage from './OrdersPage.tsx'
-import OrderDetailPage from './OrderDetailPage.tsx'
+import ProductsPage from './ProductsPage'
+import CartPage from './CartPage'
+import OrdersPage from './OrdersPage'
+import OrderDetailPage from './OrderDetailPage'
+import CustomerProfileModal from './CustomerProfileModal'
 import type { CartItem, CustomerOrderDetail } from '@/api/customer'
 
 type View =
@@ -32,11 +33,12 @@ function getCustomer(): CustomerProfile | null {
 
 export default function CustomerDashboard() {
   const navigate      = useNavigate()
-  const customer      = getCustomer()
+  const [customer, setCustomer]   = useState<CustomerProfile | null>(getCustomer)
   const [view, setView]           = useState<View>({ page: 'products' })
   const [cart, setCart]           = useState<CartItem[]>([])
   const [collapsed, setCollapsed] = useState(false)
   const [ordersKey, setOrdersKey] = useState(0)
+  const [profileOpen, setProfileOpen] = useState(false)
 
   const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0)
 
@@ -57,23 +59,33 @@ export default function CustomerDashboard() {
     setView({ page: 'order-success', order })
   }
 
-  // Fix: explicit string type on orderId parameter
   function handleViewOrder(orderId: string) {
     setView({ page: 'order-detail', orderId })
   }
 
-  const initials = (customer?.full_name ?? customer?.email ?? 'C')[0].toUpperCase()
+  /** Called by the profile modal after a successful save — update sidebar display */
+  function handleProfileUpdated(updated: { full_name: string; company_name: string | null }) {
+    const next = {
+      ...(customer ?? { id: '', email: '', type: 'individual' }),
+      full_name: updated.full_name,
+      company:   updated.company_name,
+    }
+    setCustomer(next as CustomerProfile)
+    localStorage.setItem('customer', JSON.stringify(next))
+  }
+
+  const initials = (customer?.full_name ?? 'C')[0].toUpperCase()
+
+  const activePage =
+    view.page === 'cart'          ? 'products'
+    : view.page === 'order-detail'  ? 'orders'
+    : view.page === 'order-success' ? 'orders'
+    : view.page
 
   const NAV = [
     { key: 'products' as const, label: 'Browse Products', icon: Package },
     { key: 'orders'   as const, label: 'My Orders',       icon: ClipboardList },
   ]
-
-  const activePage =
-    view.page === 'cart'         ? 'products'
-    : view.page === 'order-detail'  ? 'orders'
-    : view.page === 'order-success' ? 'orders'
-    : view.page
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
@@ -153,21 +165,37 @@ export default function CustomerDashboard() {
           </button>
         </nav>
 
-        {/* Footer */}
+        {/* Footer — profile trigger */}
         <div className="border-t border-border p-2 space-y-1">
-          {!collapsed && (
-            <div className="flex items-center gap-2 px-2 py-2 rounded-md bg-accent/50 mb-1">
+          {/* Profile button */}
+          {!collapsed ? (
+            <button
+              onClick={() => setProfileOpen(true)}
+              className="w-full flex items-center gap-2 px-2 py-2 rounded-md bg-accent/50 hover:bg-accent transition-colors group mb-1"
+            >
               <div className="w-7 h-7 rounded-md bg-orange-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
                 {initials}
               </div>
-              <div className="flex flex-col overflow-hidden min-w-0">
+              <div className="flex flex-col overflow-hidden min-w-0 flex-1 text-left">
                 <span className="text-xs font-semibold truncate">{customer?.full_name ?? 'Client'}</span>
                 {customer?.company && (
                   <span className="text-[10px] text-muted-foreground truncate">{customer.company}</span>
                 )}
               </div>
-            </div>
+              <ChevronRight className="w-3 h-3 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+            </button>
+          ) : (
+            <button
+              onClick={() => setProfileOpen(true)}
+              title="Profile"
+              className="w-full flex items-center justify-center py-2 rounded-md hover:bg-accent transition-colors mb-1"
+            >
+              <div className="w-7 h-7 rounded-md bg-orange-500 flex items-center justify-center text-white text-xs font-bold">
+                {initials}
+              </div>
+            </button>
           )}
+
           <Button
             variant="ghost"
             size={collapsed ? 'icon' : 'sm'}
@@ -197,6 +225,7 @@ export default function CustomerDashboard() {
             onCartChange={setCart}
             onBack={() => setView({ page: 'products' })}
             onOrderPlaced={handleOrderPlaced}
+            onOpenProfile={() => setProfileOpen(true)}
           />
         )}
 
@@ -248,6 +277,13 @@ export default function CustomerDashboard() {
           </div>
         )}
       </main>
+
+      {/* ── Profile Modal ── */}
+      <CustomerProfileModal
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        onProfileUpdated={handleProfileUpdated}
+      />
     </div>
   )
 }
