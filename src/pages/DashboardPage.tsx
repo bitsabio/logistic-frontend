@@ -3,10 +3,12 @@ import { useAuth } from '@/hooks/useAuth'
 import UsersPage from './UsersPage'
 import RolesPage from './RolesPage'
 import CustomersPage from './CustomersPage'
+import WarehousePage from './WarehousePage'
+import InventoryPage from './InventoryPage'
 import { Button } from '@/components/ui/button'
-import { Users, LogOut, ChevronLeft, ChevronRight, Shield, Briefcase } from 'lucide-react'
+import { Users, LogOut, ChevronLeft, ChevronRight, Shield, Briefcase, Warehouse, SlidersHorizontal } from 'lucide-react'
 
-type NavItem = 'users' | 'roles' | 'customers'
+type NavItem = 'users' | 'roles' | 'customers' | 'warehouses' | 'inventory'
 
 export default function DashboardPage() {
   const { user, logout } = useAuth()
@@ -16,20 +18,42 @@ export default function DashboardPage() {
   const initials = (user?.name ?? user?.email ?? 'U')[0].toUpperCase()
 
   const isAdminOrSuper = user?.roles?.some(r => r === 'SUPER_ADMIN' || r === 'ADMIN') ?? false
+  const isOpsOrAbove   = user?.roles?.some(r => ['SUPER_ADMIN', 'ADMIN', 'OPS_MANAGER'].includes(r)) ?? false
 
-  const NAV_ITEMS: { key: NavItem; label: string; hidden?: boolean }[] = [
-    { key: 'users', label: 'Users', hidden: !isAdminOrSuper },
-    { key: 'roles', label: 'Roles', hidden: !isAdminOrSuper },
-    { key: 'customers', label: 'Customers', hidden: !isAdminOrSuper },
+  const NAV_ITEMS: { key: NavItem; label: string; icon: React.ReactNode; hidden?: boolean }[] = [
+    {
+      key: 'users',
+      label: 'Users',
+      icon: <Users className="w-4 h-4 shrink-0" />,
+      hidden: !isAdminOrSuper,
+    },
+    {
+      key: 'roles',
+      label: 'Roles',
+      icon: <Shield className="w-4 h-4 shrink-0" />,
+      hidden: !isAdminOrSuper,
+    },
+    {
+      key: 'customers',
+      label: 'Customers',
+      icon: <Briefcase className="w-4 h-4 shrink-0" />,
+      hidden: !isAdminOrSuper,
+    },
+    {
+      key: 'warehouses',
+      label: 'Warehouses',
+      icon: <Warehouse className="w-4 h-4 shrink-0" />,
+      hidden: !isOpsOrAbove,
+    },
+    {
+      key: 'inventory',
+      label: 'Inventory',
+      icon: <SlidersHorizontal className="w-4 h-4 shrink-0" />,
+      hidden: !isOpsOrAbove,
+    },
   ]
 
   const visibleNavItems = NAV_ITEMS.filter(item => !item.hidden)
-
-  const NAV_ICONS: Record<NavItem, (active: boolean) => React.ReactNode> = {
-    users: (active) => <Users  className={`w-4 h-4 shrink-0 ${active ? 'text-primary' : ''}`} />,
-    roles: (active) => <Shield className={`w-4 h-4 shrink-0 ${active ? 'text-primary' : ''}`} />,
-    customers: (active) => <Briefcase className={`w-4 h-4 shrink-0 ${active ? 'text-primary' : ''}`} />,
-  }
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
@@ -76,7 +100,7 @@ export default function DashboardPage() {
                   isActive ? '' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                 ].join(' ')}
               >
-                {NAV_ICONS[item.key](isActive)}
+                {item.icon}
                 {!collapsed && <span>{item.label}</span>}
               </button>
             )
@@ -133,9 +157,11 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            {activeNav === 'users' && isAdminOrSuper && <UsersPage />}
-            {activeNav === 'roles' && isAdminOrSuper && <RolesPage />}
-            {activeNav === 'customers' && isAdminOrSuper && <CustomersPage />}
+            {activeNav === 'users'      && isAdminOrSuper && <UsersPage />}
+            {activeNav === 'roles'      && isAdminOrSuper && <RolesPage />}
+            {activeNav === 'customers'  && isAdminOrSuper && <CustomersPage />}
+            {activeNav === 'warehouses' && isOpsOrAbove   && <WarehousePage />}
+            {activeNav === 'inventory'  && isOpsOrAbove   && <InventoryPage />}
           </>
         )}
       </main>
