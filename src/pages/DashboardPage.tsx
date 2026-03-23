@@ -5,10 +5,15 @@ import RolesPage from './RolesPage'
 import CustomersPage from './CustomersPage'
 import WarehousePage from './WarehousePage'
 import InventoryPage from './InventoryPage'
+import OrdersAdminPage from './OrdersAdminPage'           // ← NEW
 import { Button } from '@/components/ui/button'
-import { Users, LogOut, ChevronLeft, ChevronRight, Shield, Briefcase, Warehouse, SlidersHorizontal } from 'lucide-react'
+import {
+  Users, LogOut, ChevronLeft, ChevronRight,
+  Shield, Briefcase, Warehouse, SlidersHorizontal,
+  ClipboardList,                                          // ← NEW icon
+} from 'lucide-react'
 
-type NavItem = 'users' | 'roles' | 'customers' | 'warehouses' | 'inventory'
+type NavItem = 'users' | 'roles' | 'customers' | 'warehouses' | 'inventory' | 'orders'  // ← orders added
 
 export default function DashboardPage() {
   const { user, logout } = useAuth()
@@ -49,6 +54,13 @@ export default function DashboardPage() {
       key: 'inventory',
       label: 'Inventory',
       icon: <SlidersHorizontal className="w-4 h-4 shrink-0" />,
+      hidden: !isOpsOrAbove,
+    },
+    // ── NEW ──────────────────────────────────────────────────────────────────
+    {
+      key: 'orders',
+      label: 'Orders',
+      icon: <ClipboardList className="w-4 h-4 shrink-0" />,
       hidden: !isOpsOrAbove,
     },
   ]
@@ -162,6 +174,7 @@ export default function DashboardPage() {
             {activeNav === 'customers'  && isAdminOrSuper && <CustomersPage />}
             {activeNav === 'warehouses' && isOpsOrAbove   && <WarehousePage />}
             {activeNav === 'inventory'  && isOpsOrAbove   && <InventoryPage />}
+            {activeNav === 'orders'     && isOpsOrAbove   && <OrdersAdminPage />}  {/* ← NEW */}
           </>
         )}
       </main>
