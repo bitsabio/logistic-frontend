@@ -1,53 +1,50 @@
-// src/pages/customer/CustomerRegister.tsx
+// src/pages/RegisterPage.tsx
 
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Loader2, Package, ArrowLeft } from 'lucide-react'
+import { useState, type FormEvent } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import { Eye, EyeOff, Loader2, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import apiClient from '@/api/client'
 import { cn } from '@/lib/utils'
 
-export default function CustomerRegister() {
-  const [email,       setEmail]       = useState('')
-  const [password,    setPassword]    = useState('')
-  const [fullName,    setFullName]    = useState('')
-  const [companyName, setCompanyName] = useState('')
-  const [loading,     setLoading]     = useState(false)
-  const [error,       setError]       = useState<string | null>(null)
+export default function RegisterPage() {
   const navigate = useNavigate()
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const [fullName,     setFullName]     = useState('')
+  const [email,        setEmail]        = useState('')
+  const [password,     setPassword]     = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [isLoading,    setIsLoading]    = useState(false)
+  const [error,        setError]        = useState<string | null>(null)
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
-    setLoading(true)
+    setIsLoading(true)
     try {
-      const res = await fetch('http://localhost:3000/auth/customer/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          password,
-          full_name:    fullName,
-          company_name: companyName,
-        }),
+      await apiClient.post('/auth/register', {
+        email,
+        password,
+        full_name: fullName,
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Registration failed')
-
-      // Navigate to OTP verification page, passing email in state
-      navigate('/verify-email', { state: { email, isCustomer: true } })
-    } catch (err: any) {
-      setError(err.message)
+      // On success navigate to OTP page, passing email in state
+      navigate('/verify-email', { state: { email } })
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })
+          ?.response?.data?.message ?? 'Registration failed. Please try again.'
+      setError(msg)
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
   return (
     <div className="min-h-screen bg-background flex">
 
-      {/* Left panel */}
+      {/* Left panel — same style as LoginPage */}
       <div className="hidden lg:flex lg:w-[52%] relative bg-zinc-950 overflow-hidden flex-col justify-between p-12">
         <div
           className="absolute inset-0 opacity-[0.04]"
@@ -64,22 +61,24 @@ export default function CustomerRegister() {
           <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center shadow-lg shadow-orange-500/30">
             <Package className="w-5 h-5 text-white" strokeWidth={2} />
           </div>
-          <span className="text-white font-semibold text-lg tracking-tight">LogiX</span>
+          <span className="text-white font-semibold text-lg tracking-tight">LogiOps</span>
         </div>
 
         <div className="relative z-10">
-          <p className="text-zinc-500 text-xs font-mono tracking-[0.2em] uppercase mb-6">Client Portal</p>
+          <p className="text-zinc-500 text-xs font-mono tracking-[0.2em] uppercase mb-6">
+            Admin Operations Platform
+          </p>
           <h1 className="text-white text-4xl font-light leading-[1.15] mb-6">
-            Join thousands of<br />businesses shipping<br />
-            <span className="text-orange-400 font-normal">smarter with LogiX.</span>
+            Join your team<br />on the platform<br />
+            <span className="text-orange-400 font-normal">built for logistics.</span>
           </h1>
           <p className="text-zinc-400 text-sm leading-relaxed max-w-xs">
-            Create your account to start tracking shipments and managing your logistics — all in one place.
+            Manage orders, shipments, warehouse inventory, fleet, and billing — all from a single unified admin panel.
           </p>
         </div>
 
         <p className="relative z-10 text-zinc-600 text-xs font-mono">
-          © {new Date().getFullYear()} LogiX · Client Access
+          © {new Date().getFullYear()} LogiOps · Internal use only
         </p>
       </div>
 
@@ -92,20 +91,13 @@ export default function CustomerRegister() {
             <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
               <Package className="w-4 h-4 text-white" />
             </div>
-            <span className="font-semibold text-foreground">LogiX</span>
+            <span className="font-semibold text-foreground">LogiOps</span>
           </div>
-
-          <button
-            onClick={() => navigate('/')}
-            className="mb-8 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to portal select
-          </button>
 
           <div className="mb-8">
             <h2 className="text-2xl font-semibold text-foreground tracking-tight">Create account</h2>
             <p className="text-muted-foreground text-sm mt-1.5">
-              Sign up for access to the Client Portal.
+              Fill in your details to get started.
             </p>
           </div>
 
@@ -115,29 +107,17 @@ export default function CustomerRegister() {
             </div>
           )}
 
-          <form onSubmit={handleRegister} noValidate className="space-y-5">
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
             <div className="space-y-1.5">
-              <Label htmlFor="fullName" className="text-foreground/80">Full Name</Label>
+              <Label htmlFor="full_name" className="text-foreground/80">Full name</Label>
               <Input
-                id="fullName"
-                placeholder="John Doe"
+                id="full_name"
+                type="text"
+                autoComplete="name"
+                placeholder="John Smith"
                 value={fullName}
                 onChange={e => setFullName(e.target.value)}
-                disabled={loading}
-                required
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="companyName" className="text-foreground/80">
-                Company <span className="text-muted-foreground font-normal">(optional)</span>
-              </Label>
-              <Input
-                id="companyName"
-                placeholder="Acme Corp"
-                value={companyName}
-                onChange={e => setCompanyName(e.target.value)}
-                disabled={loading}
+                disabled={isLoading}
               />
             </div>
 
@@ -146,53 +126,68 @@ export default function CustomerRegister() {
               <Input
                 id="email"
                 type="email"
+                autoComplete="email"
                 placeholder="you@company.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                disabled={loading}
+                disabled={isLoading}
                 required
               />
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="password" className="text-foreground/80">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                disabled={loading}
-                required
-                minLength={8}
-              />
-              <p className="text-xs text-muted-foreground">Must be at least 8 characters.</p>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  placeholder="Min. 8 characters"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  required
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(p => !p)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <Button
               type="submit"
-              disabled={loading || !email || !password || !fullName}
+              disabled={isLoading || !email || !password}
               className={cn(
                 'w-full mt-2 bg-orange-500 hover:bg-orange-600 text-white font-medium h-10 transition-all duration-200',
                 'disabled:bg-orange-500/50'
               )}
             >
-              {loading
+              {isLoading
                 ? <><Loader2 className="w-4 h-4 animate-spin" />Creating account…</>
                 : 'Create account'
               }
             </Button>
           </form>
 
-          <p className="mt-8 text-center text-sm text-muted-foreground">
+          <p className="mt-6 text-center text-sm text-muted-foreground">
             Already have an account?{' '}
-            <button
-              onClick={() => navigate('/customer/login')}
-              className="font-medium text-orange-500 hover:text-orange-600 transition-colors"
-            >
+            <Link to="/login" className="text-orange-600 hover:underline font-medium">
               Sign in
-            </button>
+            </Link>
           </p>
+
+          <p className="mt-8 text-center text-xs text-muted-foreground">
+            Access is restricted to authorised staff only.<br />
+            Contact your administrator if you need access.
+          </p>
+
         </div>
       </div>
     </div>

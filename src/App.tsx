@@ -3,6 +3,8 @@ import { AuthProvider } from '@/hooks/useAuth'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import LandingPage from '@/pages/LandingPage'
 import LoginPage from '@/pages/LoginPage'
+import RegisterPage from '@/pages/RegisterPage'
+import VerifyEmailPage from '@/pages/VerifyEmailPage'   // ← ADD
 import DashboardPage from '@/pages/DashboardPage'
 import CustomerLogin from '@/pages/customer/CustomerLogin'
 import CustomerRegister from '@/pages/customer/CustomerRegister'
@@ -13,10 +15,12 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/customer/login" element={<CustomerLogin />} />
-          <Route path="/customer/register" element={<CustomerRegister />} />
+          <Route path="/"                   element={<LandingPage />} />
+          <Route path="/login"              element={<LoginPage />} />
+          <Route path="/register"           element={<RegisterPage />} />
+          <Route path="/verify-email"       element={<VerifyEmailPage />} />  {/* ← ADD */}
+          <Route path="/customer/login"     element={<CustomerLogin />} />
+          <Route path="/customer/register"  element={<CustomerRegister />} />
           <Route path="/customer/dashboard" element={<CustomerDashboard />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardPage />} />
