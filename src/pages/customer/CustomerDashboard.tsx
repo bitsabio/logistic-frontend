@@ -1,6 +1,11 @@
-import { useState } from 'react'
+// src/pages/customer/CustomerDashboard.tsx
+
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Package, ShoppingCart, ClipboardList, LogOut, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react'
+import {
+  Package, ShoppingCart, ClipboardList, LogOut,
+  ChevronLeft, ChevronRight, CheckCircle,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import ProductsPage from './ProductsPage'
 import CartPage from './CartPage'
@@ -24,33 +29,48 @@ interface CustomerProfile {
   type: string
 }
 
+// ── Read customer profile from the CUSTOMER-specific localStorage key ─────────
 function getCustomer(): CustomerProfile | null {
   try {
-    const raw = localStorage.getItem('customer')
+    const raw = localStorage.getItem('customer_user')
     return raw ? JSON.parse(raw) : null
   } catch { return null }
 }
 
 export default function CustomerDashboard() {
-  const navigate      = useNavigate()
-  const [customer, setCustomer]   = useState<CustomerProfile | null>(getCustomer)
-  const [view, setView]           = useState<View>({ page: 'products' })
-  const [cart, setCart]           = useState<CartItem[]>([])
-  const [collapsed, setCollapsed] = useState(false)
-  const [ordersKey, setOrdersKey] = useState(0)
-  const [profileOpen, setProfileOpen] = useState(false)
+  const navigate = useNavigate()
+
+  const [customer,     setCustomer]     = useState<CustomerProfile | null>(getCustomer)
+  const [view,         setView]         = useState<View>({ page: 'products' })
+  const [cart,         setCart]         = useState<CartItem[]>([])
+  const [collapsed,    setCollapsed]    = useState(false)
+  const [ordersKey,    setOrdersKey]    = useState(0)
+  const [profileOpen,  setProfileOpen]  = useState(false)
+  const [authChecked,  setAuthChecked]  = useState(false)
+
+  // ── Auth guard ─────────────────────────────────────────────────────────────
+  // Runs once after mount (not during render) to avoid the flash-then-redirect
+  // pattern. Checks the CUSTOMER-specific token, not the shared staff token.
+  useEffect(() => {
+    const token = localStorage.getItem('customer_access_token')
+    if (!token) {
+      navigate('/customer/login', { replace: true })
+    } else {
+      setAuthChecked(true)
+    }
+  }, [navigate])
+
+  if (!authChecked) return null
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
 
   const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0)
 
-  if (!localStorage.getItem('access_token')) {
-    navigate('/customer/login')
-    return null
-  }
-
   function handleLogout() {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
-    localStorage.removeItem('customer')
+    // Clear CUSTOMER-specific keys only — staff session is untouched
+    localStorage.removeItem('customer_access_token')
+    localStorage.removeItem('customer_refresh_token')
+    localStorage.removeItem('customer_user')
     navigate('/customer/login')
   }
 
@@ -63,24 +83,26 @@ export default function CustomerDashboard() {
     setView({ page: 'order-detail', orderId })
   }
 
-  /** Called by the profile modal after a successful save — update sidebar display */
+  /** Called by the profile modal after a successful save */
   function handleProfileUpdated(updated: { full_name: string; company_name: string | null }) {
-    const next = {
+    const next: CustomerProfile = {
       ...(customer ?? { id: '', email: '', type: 'individual' }),
       full_name: updated.full_name,
       company:   updated.company_name,
     }
-    setCustomer(next as CustomerProfile)
-    localStorage.setItem('customer', JSON.stringify(next))
+    setCustomer(next)
+    // Persist to the CUSTOMER-specific key
+    localStorage.setItem('customer_user', JSON.stringify(next))
   }
 
   const initials = (customer?.full_name ?? 'C')[0].toUpperCase()
 
   const activePage =
-    view.page === 'cart'          ? 'products'
-    : view.page === 'order-detail'  ? 'orders'
-    : view.page === 'order-success' ? 'orders'
-    : view.page
+    view.page === 'cart'
+      ? 'products'
+      : view.page === 'order-detail' || view.page === 'order-success'
+      ? 'orders'
+      : view.page
 
   const NAV = [
     { key: 'products' as const, label: 'Browse Products', icon: Package },
@@ -91,8 +113,11 @@ export default function CustomerDashboard() {
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
 
       {/* ── Sidebar ── */}
-      <aside className={`flex flex-col border-r border-border bg-muted/40 transition-all duration-200 shrink-0 ${collapsed ? 'w-[60px]' : 'w-[220px]'}`}>
-
+      <aside
+        className={`flex flex-col border-r border-border bg-muted/40 transition-all duration-200 shrink-0 ${
+          collapsed ? 'w-[60px]' : 'w-[220px]'
+        }`}
+      >
         {/* Logo */}
         <div className="flex items-center justify-between px-3 py-4 border-b border-border min-h-[60px]">
           {!collapsed && (
@@ -111,7 +136,10 @@ export default function CustomerDashboard() {
             className="h-7 w-7 shrink-0 ml-auto"
             onClick={() => setCollapsed(v => !v)}
           >
-            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            {collapsed
+              ? <ChevronRight className="w-4 h-4" />
+              : <ChevronLeft className="w-4 h-4" />
+            }
           </Button>
         </div>
 
@@ -159,15 +187,14 @@ export default function CustomerDashboard() {
             </div>
             {!collapsed && (
               <span className="flex-1">
-                Cart {cartCount > 0 && <span className="text-orange-500 font-bold">({cartCount})</span>}
+                Cart{cartCount > 0 && <span className="text-orange-500 font-bold ml-1">({cartCount})</span>}
               </span>
             )}
           </button>
         </nav>
 
-        {/* Footer — profile trigger */}
+        {/* Footer — profile + logout */}
         <div className="border-t border-border p-2 space-y-1">
-          {/* Profile button */}
           {!collapsed ? (
             <button
               onClick={() => setProfileOpen(true)}
@@ -199,7 +226,9 @@ export default function CustomerDashboard() {
           <Button
             variant="ghost"
             size={collapsed ? 'icon' : 'sm'}
-            className={`w-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 ${collapsed ? 'h-9' : 'justify-start gap-2'}`}
+            className={`w-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 ${
+              collapsed ? 'h-9' : 'justify-start gap-2'
+            }`}
             onClick={handleLogout}
             title="Sign out"
           >
