@@ -9,11 +9,11 @@ import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
 export default function CustomerLogin() {
-  const [email,        setEmail]        = useState('')
-  const [password,     setPassword]     = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading,      setLoading]      = useState(false)
-  const [error,        setError]        = useState<string | null>(null)
+  const [email,           setEmail]           = useState('')
+  const [password,        setPassword]        = useState('')
+  const [showPassword,    setShowPassword]    = useState(false)
+  const [loading,         setLoading]         = useState(false)
+  const [error,           setError]           = useState<string | null>(null)
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null)
   const navigate = useNavigate()
 
@@ -23,7 +23,8 @@ export default function CustomerLogin() {
     setUnverifiedEmail(null)
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:3000/auth/customer/login', {
+      // Use /api proxy (Vite rewrites to http://localhost:3000) — no hardcoded host
+      const res = await fetch('/api/auth/customer/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -31,7 +32,6 @@ export default function CustomerLogin() {
       const data = await res.json()
 
       if (!res.ok) {
-        // Handle unverified email — redirect to OTP page
         if (data.code === 'EMAIL_NOT_VERIFIED') {
           setUnverifiedEmail(data.email ?? email)
           return
@@ -39,12 +39,19 @@ export default function CustomerLogin() {
         throw new Error(data.message || 'Login failed')
       }
 
-      localStorage.setItem('access_token',  data.access_token)
-      localStorage.setItem('refresh_token', data.refresh_token)
-      localStorage.setItem('customer',      JSON.stringify(data.customer))
+      // ── Store under CUSTOMER-specific keys ──────────────────────────────
+      // Never use 'access_token' / 'refresh_token' — those belong to the
+      // staff portal (useAuth / apiClient). Mixing them caused customers to
+      // land on the staff dashboard.
+      localStorage.setItem('customer_access_token',  data.access_token)
+      localStorage.setItem('customer_refresh_token', data.refresh_token)
+      localStorage.setItem('customer_user',          JSON.stringify(data.customer))
+
       navigate('/customer/dashboard')
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(
+        (err as { message?: string })?.message ?? 'Login failed. Please try again.'
+      )
     } finally {
       setLoading(false)
     }
@@ -185,6 +192,7 @@ export default function CustomerLogin() {
                   onClick={() => setShowPassword(p => !p)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   tabIndex={-1}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>

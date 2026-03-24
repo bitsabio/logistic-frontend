@@ -1,4 +1,5 @@
-import apiClient from './client'
+// src/api/customer.ts
+import customerClient from './customerClient'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -110,7 +111,7 @@ export interface UpdateAddressPayload {
 
 export const profileApi = {
   get: async (): Promise<CustomerProfile> => {
-    const { data } = await apiClient.get<CustomerProfile>('/customer/profile')
+    const { data } = await customerClient.get<CustomerProfile>('/customer/profile')
     return data
   },
 
@@ -119,7 +120,7 @@ export const profileApi = {
     phone?: string
     company_name?: string
   }): Promise<CustomerProfile> => {
-    const { data } = await apiClient.patch<CustomerProfile>('/customer/profile', payload)
+    const { data } = await customerClient.patch<CustomerProfile>('/customer/profile', payload)
     return data
   },
 }
@@ -128,27 +129,27 @@ export const profileApi = {
 
 export const addressApi = {
   list: async (): Promise<CustomerAddress[]> => {
-    const { data } = await apiClient.get<CustomerAddress[]>('/customer/addresses')
+    const { data } = await customerClient.get<CustomerAddress[]>('/customer/addresses')
     return data
   },
 
   add: async (payload: CreateAddressPayload): Promise<CustomerAddress> => {
-    const { data } = await apiClient.post<CustomerAddress>('/customer/addresses', payload)
+    const { data } = await customerClient.post<CustomerAddress>('/customer/addresses', payload)
     return data
   },
 
   update: async (id: string, payload: UpdateAddressPayload): Promise<CustomerAddress> => {
-    const { data } = await apiClient.patch<CustomerAddress>(`/customer/addresses/${id}`, payload)
+    const { data } = await customerClient.patch<CustomerAddress>(`/customer/addresses/${id}`, payload)
     return data
   },
 
   delete: async (id: string): Promise<{ message: string }> => {
-    const { data } = await apiClient.delete<{ message: string }>(`/customer/addresses/${id}`)
+    const { data } = await customerClient.delete<{ message: string }>(`/customer/addresses/${id}`)
     return data
   },
 
   setDefault: async (id: string): Promise<CustomerAddress> => {
-    const { data } = await apiClient.patch<CustomerAddress>(`/customer/addresses/${id}/default`)
+    const { data } = await customerClient.patch<CustomerAddress>(`/customer/addresses/${id}/default`)
     return data
   },
 }
@@ -163,12 +164,12 @@ export const customerApi = {
     search?: string
     category?: string
   }): Promise<{ data: Product[]; meta: PageMeta }> => {
-    const { data } = await apiClient.get('/customer/products', { params })
+    const { data } = await customerClient.get('/customer/products', { params })
     return data
   },
 
   getCategories: async (): Promise<string[]> => {
-    const { data } = await apiClient.get('/customer/products/categories')
+    const { data } = await customerClient.get('/customer/products/categories')
     return data
   },
 
@@ -177,12 +178,12 @@ export const customerApi = {
     page?: number
     limit?: number
   }): Promise<{ data: CustomerOrder[]; meta: PageMeta }> => {
-    const { data } = await apiClient.get('/customer/orders', { params })
+    const { data } = await customerClient.get('/customer/orders', { params })
     return data
   },
 
   getOrder: async (id: string): Promise<CustomerOrderDetail> => {
-    const { data } = await apiClient.get(`/customer/orders/${id}`)
+    const { data } = await customerClient.get(`/customer/orders/${id}`)
     return data
   },
 
@@ -192,12 +193,12 @@ export const customerApi = {
     priority?: 'standard' | 'express' | 'overnight'
     delivery_address_id: string
   }): Promise<CustomerOrderDetail> => {
-    const { data } = await apiClient.post('/customer/orders', payload)
+    const { data } = await customerClient.post('/customer/orders', payload)
     return data
   },
 
   cancelOrder: async (id: string): Promise<{ message: string }> => {
-    const { data } = await apiClient.patch(`/customer/orders/${id}/cancel`)
+    const { data } = await customerClient.patch(`/customer/orders/${id}/cancel`)
     return data
   },
 }
