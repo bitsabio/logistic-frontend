@@ -5,11 +5,15 @@ import RolesPage from './RolesPage'
 import CustomersPage from './CustomersPage'
 import WarehousePage from './WarehousePage'
 import InventoryPage from './InventoryPage'
+import OrdersAdminPage from './OrdersAdminPage'           // ← NEW
 import { Button } from '@/components/ui/button'
-import { Users, LogOut, ChevronLeft, ChevronRight, Shield, Briefcase, Warehouse, SlidersHorizontal, Package } from 'lucide-react'
-import ProductsAdminPage from './customer/ProductsPage'
+import {
+  Users, LogOut, ChevronLeft, ChevronRight,
+  Shield, Briefcase, Warehouse, SlidersHorizontal,
+  ClipboardList,                                          // ← NEW icon
+} from 'lucide-react'
 
-type NavItem = 'users' | 'roles' | 'customers' | 'warehouses' | 'inventory' | 'products'
+type NavItem = 'users' | 'roles' | 'customers' | 'warehouses' | 'inventory' | 'orders'  // ← orders added
 
 export default function DashboardPage() {
   const { user, logout } = useAuth()
@@ -52,11 +56,12 @@ export default function DashboardPage() {
       icon: <SlidersHorizontal className="w-4 h-4 shrink-0" />,
       hidden: !isOpsOrAbove,
     },
+    // ── NEW ──────────────────────────────────────────────────────────────────
     {
-      key: 'products',
-      label: 'Products',
-      icon: <Package className="w-4 h-4 shrink-0" />,
-      hidden: !isAdminOrSuper,
+      key: 'orders',
+      label: 'Orders',
+      icon: <ClipboardList className="w-4 h-4 shrink-0" />,
+      hidden: !isOpsOrAbove,
     },
   ]
 
@@ -169,13 +174,7 @@ export default function DashboardPage() {
             {activeNav === 'customers'  && isAdminOrSuper && <CustomersPage />}
             {activeNav === 'warehouses' && isOpsOrAbove   && <WarehousePage />}
             {activeNav === 'inventory'  && isOpsOrAbove   && <InventoryPage />}
-            {activeNav === 'products' && isAdminOrSuper && (
-  <ProductsAdminPage
-    cart={[]}
-    onCartChange={() => {}}
-    onGoToCart={() => {}}
-  />
-)}
+            {activeNav === 'orders'     && isOpsOrAbove   && <OrdersAdminPage />}  {/* ← NEW */}
           </>
         )}
       </main>

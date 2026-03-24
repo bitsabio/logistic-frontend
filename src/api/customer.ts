@@ -1,4 +1,5 @@
-import apiClient from './client'
+// src/api/customer.ts
+import customerClient from './customerClient'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -57,58 +58,118 @@ export interface CartItem {
   quantity: number
 }
 
-// ─── API calls ────────────────────────────────────────────────────────────────
+export interface CustomerProfile {
+  id: string
+  email: string
+  full_name: string
+  phone: string | null
+  company_name: string | null
+  customer_type: 'individual' | 'business'
+  status: 'active' | 'suspended' | 'churned'
+  created_at: string
+  last_login_at: string | null
+  mfa_enabled: boolean
+}
+
+export interface CustomerAddress {
+  customer_address_id: string
+  is_default: boolean
+  added_at: string
+  address_id: string
+  label: string | null
+  line1: string
+  line2: string | null
+  city: string
+  state: string | null
+  postal_code: string | null
+  country: string
+  is_verified: boolean
+}
+
+export interface CreateAddressPayload {
+  label?: string
+  line1: string
+  line2?: string
+  city: string
+  state?: string
+  postal_code?: string
+  country: string
+  is_default?: boolean
+}
+
+export interface UpdateAddressPayload {
+  label?: string
+  line1?: string
+  line2?: string
+  city?: string
+  state?: string
+  postal_code?: string
+  country?: string
+}
+
+// ─── Profile API ──────────────────────────────────────────────────────────────
+
+export const profileApi = {
+  get: async (): Promise<CustomerProfile> => {
+    const { data } = await customerClient.get<CustomerProfile>('/customer/profile')
+    return data
+  },
+
+  update: async (payload: {
+    full_name?: string
+    phone?: string
+    company_name?: string
+  }): Promise<CustomerProfile> => {
+    const { data } = await customerClient.patch<CustomerProfile>('/customer/profile', payload)
+    return data
+  },
+}
+
+// ─── Address API ──────────────────────────────────────────────────────────────
+
+export const addressApi = {
+  list: async (): Promise<CustomerAddress[]> => {
+    const { data } = await customerClient.get<CustomerAddress[]>('/customer/addresses')
+    return data
+  },
+
+  add: async (payload: CreateAddressPayload): Promise<CustomerAddress> => {
+    const { data } = await customerClient.post<CustomerAddress>('/customer/addresses', payload)
+    return data
+  },
+
+  update: async (id: string, payload: UpdateAddressPayload): Promise<CustomerAddress> => {
+    const { data } = await customerClient.patch<CustomerAddress>(`/customer/addresses/${id}`, payload)
+    return data
+  },
+
+  delete: async (id: string): Promise<{ message: string }> => {
+    const { data } = await customerClient.delete<{ message: string }>(`/customer/addresses/${id}`)
+    return data
+  },
+
+  setDefault: async (id: string): Promise<CustomerAddress> => {
+    const { data } = await customerClient.patch<CustomerAddress>(`/customer/addresses/${id}/default`)
+    return data
+  },
+}
+
+// ─── Orders + Products API ────────────────────────────────────────────────────
 
 export const customerApi = {
   // Products
-  
-getProducts: async (params?: {
-  page?: number
-  limit?: number
-  search?: string
-  category?: string
-}): Promise<{ data: Product[]; meta: PageMeta }> => {
-
-  const res = await apiClient.get('/products', { params })
-
-  console.log("API RESPONSE:", res.data)
-
-  // HANDLE ALL TYPES OF RESPONSE
-  let rawProducts: any[] = []
-
-  if (Array.isArray(res.data)) {
-    rawProducts = res.data
-  } else if (Array.isArray(res.data?.data)) {
-    rawProducts = res.data.data
-  } else {
-    rawProducts = []
-  }
-
-  const mapped: Product[] = rawProducts.map((p: any) => ({
-    id: p.id,
-    sku: p.sku,
-    name: p.name,
-    category: p.category ?? null,
-    weight_kg: p.weight_kg ?? null,
-    dimensions_cm: p.dimensions_cm ?? null,
-    unit_price: p.unit_cost ? Number(p.unit_cost) : null,
-    in_stock: true,
-    quantity_available: 10,
-  }))
-
-  return {
-    data: mapped,
-    meta: {
-      page: 1,
-      limit: mapped.length,
-      total: mapped.length,
-      pages: 1,
-    },
-  }
-},
+  getProducts: async (params?: {
+    page?: number
+    limit?: number
+    search?: string
+    category?: string
+  }): Promise<{ data: Product[]; meta: PageMeta }> => {
+    const { data } = await customerClient.get('/customer/products', { params })
+    return data
+  },
 
   getCategories: async (): Promise<string[]> => {
-    const { data } = await apiClient.get('/customer/products/categories')
+    const { data } = await customerClient.get('/customer/products/categories')
     return data
   },
 
@@ -117,12 +178,12 @@ getProducts: async (params?: {
     page?: number
     limit?: number
   }): Promise<{ data: CustomerOrder[]; meta: PageMeta }> => {
-    const { data } = await apiClient.get('/customer/orders', { params })
+    const { data } = await customerClient.get('/customer/orders', { params })
     return data
   },
 
   getOrder: async (id: string): Promise<CustomerOrderDetail> => {
-    const { data } = await apiClient.get(`/customer/orders/${id}`)
+    const { data } = await customerClient.get(`/customer/orders/${id}`)
     return data
   },
 
@@ -130,13 +191,14 @@ getProducts: async (params?: {
     items: Array<{ product_id: string; quantity: number }>
     notes?: string
     priority?: 'standard' | 'express' | 'overnight'
+    delivery_address_id: string
   }): Promise<CustomerOrderDetail> => {
-    const { data } = await apiClient.post('/customer/orders', payload)
+    const { data } = await customerClient.post('/customer/orders', payload)
     return data
   },
 
   cancelOrder: async (id: string): Promise<{ message: string }> => {
-    const { data } = await apiClient.patch(`/customer/orders/${id}/cancel`)
+    const { data } = await customerClient.patch(`/customer/orders/${id}/cancel`)
     return data
   },
 }

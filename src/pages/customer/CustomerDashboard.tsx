@@ -1,11 +1,17 @@
-import { useState } from 'react'
+// src/pages/customer/CustomerDashboard.tsx
+
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Package, ShoppingCart, ClipboardList, LogOut, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react'
+import {
+  Package, ShoppingCart, ClipboardList, LogOut,
+  ChevronLeft, ChevronRight, CheckCircle,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import ProductsPage from './ProductsPage.tsx'
-import CartPage from './CartPage.tsx'
-import OrdersPage from './OrdersPage.tsx'
-import OrderDetailPage from './OrderDetailPage.tsx'
+import ProductsPage from './ProductsPage'
+import CartPage from './CartPage'
+import OrdersPage from './OrdersPage'
+import OrderDetailPage from './OrderDetailPage'
+import CustomerProfileModal from './CustomerProfileModal'
 import type { CartItem, CustomerOrderDetail } from '@/api/customer'
 
 type View =
@@ -23,32 +29,48 @@ interface CustomerProfile {
   type: string
 }
 
+// ── Read customer profile from the CUSTOMER-specific localStorage key ─────────
 function getCustomer(): CustomerProfile | null {
   try {
-    const raw = localStorage.getItem('customer')
+    const raw = localStorage.getItem('customer_user')
     return raw ? JSON.parse(raw) : null
   } catch { return null }
 }
 
 export default function CustomerDashboard() {
-  const navigate      = useNavigate()
-  const customer      = getCustomer()
-  const [view, setView]           = useState<View>({ page: 'products' })
-  const [cart, setCart]           = useState<CartItem[]>([])
-  const [collapsed, setCollapsed] = useState(false)
-  const [ordersKey, setOrdersKey] = useState(0)
+  const navigate = useNavigate()
+
+  const [customer,     setCustomer]     = useState<CustomerProfile | null>(getCustomer)
+  const [view,         setView]         = useState<View>({ page: 'products' })
+  const [cart,         setCart]         = useState<CartItem[]>([])
+  const [collapsed,    setCollapsed]    = useState(false)
+  const [ordersKey,    setOrdersKey]    = useState(0)
+  const [profileOpen,  setProfileOpen]  = useState(false)
+  const [authChecked,  setAuthChecked]  = useState(false)
+
+  // ── Auth guard ─────────────────────────────────────────────────────────────
+  // Runs once after mount (not during render) to avoid the flash-then-redirect
+  // pattern. Checks the CUSTOMER-specific token, not the shared staff token.
+  useEffect(() => {
+    const token = localStorage.getItem('customer_access_token')
+    if (!token) {
+      navigate('/customer/login', { replace: true })
+    } else {
+      setAuthChecked(true)
+    }
+  }, [navigate])
+
+  if (!authChecked) return null
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
 
   const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0)
 
-  if (!localStorage.getItem('access_token')) {
-    navigate('/customer/login')
-    return null
-  }
-
   function handleLogout() {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
-    localStorage.removeItem('customer')
+    // Clear CUSTOMER-specific keys only — staff session is untouched
+    localStorage.removeItem('customer_access_token')
+    localStorage.removeItem('customer_refresh_token')
+    localStorage.removeItem('customer_user')
     navigate('/customer/login')
   }
 
@@ -57,30 +79,45 @@ export default function CustomerDashboard() {
     setView({ page: 'order-success', order })
   }
 
-  // Fix: explicit string type on orderId parameter
   function handleViewOrder(orderId: string) {
     setView({ page: 'order-detail', orderId })
   }
 
-  const initials = (customer?.full_name ?? customer?.email ?? 'C')[0].toUpperCase()
+  /** Called by the profile modal after a successful save */
+  function handleProfileUpdated(updated: { full_name: string; company_name: string | null }) {
+    const next: CustomerProfile = {
+      ...(customer ?? { id: '', email: '', type: 'individual' }),
+      full_name: updated.full_name,
+      company:   updated.company_name,
+    }
+    setCustomer(next)
+    // Persist to the CUSTOMER-specific key
+    localStorage.setItem('customer_user', JSON.stringify(next))
+  }
+
+  const initials = (customer?.full_name ?? 'C')[0].toUpperCase()
+
+  const activePage =
+    view.page === 'cart'
+      ? 'products'
+      : view.page === 'order-detail' || view.page === 'order-success'
+      ? 'orders'
+      : view.page
 
   const NAV = [
     { key: 'products' as const, label: 'Browse Products', icon: Package },
     { key: 'orders'   as const, label: 'My Orders',       icon: ClipboardList },
   ]
 
-  const activePage =
-    view.page === 'cart'         ? 'products'
-    : view.page === 'order-detail'  ? 'orders'
-    : view.page === 'order-success' ? 'orders'
-    : view.page
-
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
 
       {/* ── Sidebar ── */}
-      <aside className={`flex flex-col border-r border-border bg-muted/40 transition-all duration-200 shrink-0 ${collapsed ? 'w-[60px]' : 'w-[220px]'}`}>
-
+      <aside
+        className={`flex flex-col border-r border-border bg-muted/40 transition-all duration-200 shrink-0 ${
+          collapsed ? 'w-[60px]' : 'w-[220px]'
+        }`}
+      >
         {/* Logo */}
         <div className="flex items-center justify-between px-3 py-4 border-b border-border min-h-[60px]">
           {!collapsed && (
@@ -99,7 +136,10 @@ export default function CustomerDashboard() {
             className="h-7 w-7 shrink-0 ml-auto"
             onClick={() => setCollapsed(v => !v)}
           >
-            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            {collapsed
+              ? <ChevronRight className="w-4 h-4" />
+              : <ChevronLeft className="w-4 h-4" />
+            }
           </Button>
         </div>
 
@@ -147,31 +187,48 @@ export default function CustomerDashboard() {
             </div>
             {!collapsed && (
               <span className="flex-1">
-                Cart {cartCount > 0 && <span className="text-orange-500 font-bold">({cartCount})</span>}
+                Cart{cartCount > 0 && <span className="text-orange-500 font-bold ml-1">({cartCount})</span>}
               </span>
             )}
           </button>
         </nav>
 
-        {/* Footer */}
+        {/* Footer — profile + logout */}
         <div className="border-t border-border p-2 space-y-1">
-          {!collapsed && (
-            <div className="flex items-center gap-2 px-2 py-2 rounded-md bg-accent/50 mb-1">
+          {!collapsed ? (
+            <button
+              onClick={() => setProfileOpen(true)}
+              className="w-full flex items-center gap-2 px-2 py-2 rounded-md bg-accent/50 hover:bg-accent transition-colors group mb-1"
+            >
               <div className="w-7 h-7 rounded-md bg-orange-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
                 {initials}
               </div>
-              <div className="flex flex-col overflow-hidden min-w-0">
+              <div className="flex flex-col overflow-hidden min-w-0 flex-1 text-left">
                 <span className="text-xs font-semibold truncate">{customer?.full_name ?? 'Client'}</span>
                 {customer?.company && (
                   <span className="text-[10px] text-muted-foreground truncate">{customer.company}</span>
                 )}
               </div>
-            </div>
+              <ChevronRight className="w-3 h-3 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+            </button>
+          ) : (
+            <button
+              onClick={() => setProfileOpen(true)}
+              title="Profile"
+              className="w-full flex items-center justify-center py-2 rounded-md hover:bg-accent transition-colors mb-1"
+            >
+              <div className="w-7 h-7 rounded-md bg-orange-500 flex items-center justify-center text-white text-xs font-bold">
+                {initials}
+              </div>
+            </button>
           )}
+
           <Button
             variant="ghost"
             size={collapsed ? 'icon' : 'sm'}
-            className={`w-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 ${collapsed ? 'h-9' : 'justify-start gap-2'}`}
+            className={`w-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 ${
+              collapsed ? 'h-9' : 'justify-start gap-2'
+            }`}
             onClick={handleLogout}
             title="Sign out"
           >
@@ -197,6 +254,7 @@ export default function CustomerDashboard() {
             onCartChange={setCart}
             onBack={() => setView({ page: 'products' })}
             onOrderPlaced={handleOrderPlaced}
+            onOpenProfile={() => setProfileOpen(true)}
           />
         )}
 
@@ -248,6 +306,13 @@ export default function CustomerDashboard() {
           </div>
         )}
       </main>
+
+      {/* ── Profile Modal ── */}
+      <CustomerProfileModal
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        onProfileUpdated={handleProfileUpdated}
+      />
     </div>
   )
 }
