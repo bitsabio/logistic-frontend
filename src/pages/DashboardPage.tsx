@@ -6,9 +6,10 @@ import CustomersPage from './CustomersPage'
 import WarehousePage from './WarehousePage'
 import InventoryPage from './InventoryPage'
 import { Button } from '@/components/ui/button'
-import { Users, LogOut, ChevronLeft, ChevronRight, Shield, Briefcase, Warehouse, SlidersHorizontal } from 'lucide-react'
+import { Users, LogOut, ChevronLeft, ChevronRight, Shield, Briefcase, Warehouse, SlidersHorizontal, Package } from 'lucide-react'
+import ProductsAdminPage from './customer/ProductsPage'
 
-type NavItem = 'users' | 'roles' | 'customers' | 'warehouses' | 'inventory'
+type NavItem = 'users' | 'roles' | 'customers' | 'warehouses' | 'inventory' | 'products'
 
 export default function DashboardPage() {
   const { user, logout } = useAuth()
@@ -50,6 +51,12 @@ export default function DashboardPage() {
       label: 'Inventory',
       icon: <SlidersHorizontal className="w-4 h-4 shrink-0" />,
       hidden: !isOpsOrAbove,
+    },
+    {
+      key: 'products',
+      label: 'Products',
+      icon: <Package className="w-4 h-4 shrink-0" />,
+      hidden: !isAdminOrSuper,
     },
   ]
 
@@ -162,6 +169,13 @@ export default function DashboardPage() {
             {activeNav === 'customers'  && isAdminOrSuper && <CustomersPage />}
             {activeNav === 'warehouses' && isOpsOrAbove   && <WarehousePage />}
             {activeNav === 'inventory'  && isOpsOrAbove   && <InventoryPage />}
+            {activeNav === 'products' && isAdminOrSuper && (
+  <ProductsAdminPage
+    cart={[]}
+    onCartChange={() => {}}
+    onGoToCart={() => {}}
+  />
+)}
           </>
         )}
       </main>

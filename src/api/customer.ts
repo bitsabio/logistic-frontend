@@ -61,15 +61,51 @@ export interface CartItem {
 
 export const customerApi = {
   // Products
-  getProducts: async (params?: {
-    page?: number
-    limit?: number
-    search?: string
-    category?: string
-  }): Promise<{ data: Product[]; meta: PageMeta }> => {
-    const { data } = await apiClient.get('/customer/products', { params })
-    return data
-  },
+  
+getProducts: async (params?: {
+  page?: number
+  limit?: number
+  search?: string
+  category?: string
+}): Promise<{ data: Product[]; meta: PageMeta }> => {
+
+  const res = await apiClient.get('/products', { params })
+
+  console.log("API RESPONSE:", res.data)
+
+  // HANDLE ALL TYPES OF RESPONSE
+  let rawProducts: any[] = []
+
+  if (Array.isArray(res.data)) {
+    rawProducts = res.data
+  } else if (Array.isArray(res.data?.data)) {
+    rawProducts = res.data.data
+  } else {
+    rawProducts = []
+  }
+
+  const mapped: Product[] = rawProducts.map((p: any) => ({
+    id: p.id,
+    sku: p.sku,
+    name: p.name,
+    category: p.category ?? null,
+    weight_kg: p.weight_kg ?? null,
+    dimensions_cm: p.dimensions_cm ?? null,
+    unit_price: p.unit_cost ? Number(p.unit_cost) : null,
+    in_stock: true,
+    quantity_available: 10,
+  }))
+
+  return {
+    data: mapped,
+    meta: {
+      page: 1,
+      limit: mapped.length,
+      total: mapped.length,
+      pages: 1,
+    },
+  }
+},
 
   getCategories: async (): Promise<string[]> => {
     const { data } = await apiClient.get('/customer/products/categories')
@@ -103,4 +139,20 @@ export const customerApi = {
     const { data } = await apiClient.patch(`/customer/orders/${id}/cancel`)
     return data
   },
+}
+
+// ADD PRODUCT
+;(customerApi as any).createProduct = async (payload: {
+  name: string
+  sku: string
+  unit_cost: number
+}) => {
+  const res = await apiClient.post('/products', payload)
+  return res.data
+}
+
+// DELETE PRODUCT
+;(customerApi as any).deleteProduct = async (id: string) => {
+  const res = await apiClient.delete(`/products/${id}`)
+  return res.data
 }
