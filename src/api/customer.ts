@@ -202,3 +202,19 @@ export const customerApi = {
     return data
   },
 }
+
+// ADD PRODUCT
+;(customerApi as any).createProduct = async (payload: {
+  name: string
+  sku: string
+  unit_cost: number
+}) => {
+  const res = await apiClient.post('/products', payload)
+  return res.data
+}
+
+// DELETE PRODUCT
+;(customerApi as any).deleteProduct = async (id: string) => {
+  const res = await apiClient.delete(`/products/${id}`)
+  return res.data
+}

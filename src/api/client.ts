@@ -14,6 +14,12 @@ apiClient.interceptors.request.use((config) => {
   }
   return config
 })
+//  DEBUG LOG (ADD THIS)
+apiClient.interceptors.request.use((config) => {
+  console.log("API REQUEST:", config.method?.toUpperCase(), config.url)
+  console.log("TOKEN:", localStorage.getItem('access_token'))
+  return config
+})
 
 apiClient.interceptors.response.use(
   (response) => response,
@@ -27,5 +33,15 @@ apiClient.interceptors.response.use(
     return Promise.reject(error)
   }
 )
-
+// DEBUG RESPONSE (ADD THIS)
+apiClient.interceptors.response.use(
+  (response) => {
+    console.log("API RESPONSE:", response.config.url, response.data)
+    return response
+  },
+  (error) => {
+    console.error("API ERROR:", error?.response?.data || error.message)
+    return Promise.reject(error)
+  }
+)
 export default apiClient

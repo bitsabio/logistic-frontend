@@ -50,7 +50,17 @@ export default function ProductsPage({ cart, onCartChange, onGoToCart }: Product
   useEffect(() => {
     customerApi.getCategories().then(setCategories).catch(() => {})
   }, [])
+  
+const [isOpen, setIsOpen] = useState(false)
 
+const [formData, setFormData] = useState({
+  name: "",
+  sku: "",
+  category: "",
+  cost: "",
+  weight: "",
+  barcode: ""
+})
   function getCartQty(productId: string): number {
     return cart.find(i => i.product.id === productId)?.quantity ?? 0
   }
@@ -76,11 +86,146 @@ export default function ProductsPage({ cart, onCartChange, onGoToCart }: Product
         .filter(i => i.quantity > 0)
     )
   }
+// ADD PRODUCT FUNCTION
+async function handleAddProduct() {
+  try {
+  await (customerApi as any).createProduct({
+  sku: formData.sku,
+  name: formData.name,
+  category: formData.category,
+  weight_kg: Number(formData.weight),
+  unit_cost: Number(formData.cost),
+  barcode: formData.barcode
+})
+    fetchProducts()
+    setIsOpen(false)
 
+setFormData({
+  name: "",
+  sku: "",
+  category: "",
+  cost: "",
+  weight: "",
+  barcode: ""
+})
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+// DELETE PRODUCT FUNCTION
+async function handleDeleteProduct(id: string) {
+  try {
+    await (customerApi as any).deleteProduct(id)
+    fetchProducts()
+  } catch (err) {
+    console.error(err)
+  }
+}
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="px-6 py-5 border-b border-border bg-card flex items-center justify-between gap-4">
+        <Button
+  onClick={() => setIsOpen(true)}
+  className="bg-green-600 hover:bg-green-600 text-white"
+>
+  Add Product
+</Button>
+{/* ✅ STYLED POPUP */}
+{isOpen && (
+  <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+    <div className="bg-white rounded-xl shadow-xl w-[400px] p-6 space-y-4 animate-in fade-in zoom-in-95">
+
+      <h2 className="text-xl font-semibold text-gray-800 text-center">
+        Add Product
+      </h2>
+
+      {/* FORM FIELDS */}
+      <div className="space-y-3">
+
+        <div>
+          <label className="text-sm font-medium text-gray-600">Product Name</label>
+          <input
+            className="w-full mt-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            value={formData.name}
+            placeholder="Enter product name"
+            onChange={(e) => setFormData({...formData, name: e.target.value})}
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium text-gray-600">SKU</label>
+          <input
+            className="w-full mt-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            value={formData.sku}
+            placeholder="Enter SKU"
+            onChange={(e) => setFormData({...formData, sku: e.target.value})}
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium text-gray-600">Category</label>
+          <input
+            className="w-full mt-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            value={formData.category}
+            placeholder="Enter category"
+            onChange={(e) => setFormData({...formData, category: e.target.value})}
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium text-gray-600">Cost</label>
+          <input
+            className="w-full mt-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            value={formData.cost}
+            placeholder="Enter cost"
+            onChange={(e) => setFormData({...formData, cost: e.target.value})}
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium text-gray-600">Weight (kg)</label>
+          <input
+            className="w-full mt-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            value={formData.weight}
+            placeholder="Enter weight"
+            onChange={(e) => setFormData({...formData, weight: e.target.value})}
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium text-gray-600">Barcode</label>
+          <input
+            className="w-full mt-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            value={formData.barcode}
+            placeholder="Enter barcode"
+            onChange={(e) => setFormData({...formData, barcode: e.target.value})}
+          />
+        </div>
+
+      </div>
+
+      {/* BUTTONS */}
+      <div className="flex gap-3 pt-2">
+        <button
+          onClick={handleAddProduct}
+          className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-md font-medium transition"
+        >
+          Add Product
+        </button>
+
+        <button
+          onClick={() => setIsOpen(false)}
+          className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-md font-medium transition"
+        >
+          Cancel
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
         <div>
           <h1 className="text-xl font-semibold text-foreground">Products</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Browse and add items to your order</p>
@@ -220,19 +365,29 @@ export default function ProductsPage({ cart, onCartChange, onGoToCart }: Product
 
                     {/* Cart controls */}
                     {qty === 0 ? (
-                      <Button
-                        size="sm"
-                        disabled={!product.in_stock}
-                        onClick={() => addToCart(product)}
-                        className={`w-full transition-all ${
-                          justAdded
-                            ? 'bg-emerald-500 hover:bg-emerald-500 text-white'
-                            : 'bg-orange-500 hover:bg-orange-600 text-white'
-                        }`}
-                      >
-                        {justAdded ? '✓ Added' : 'Add to Cart'}
-                      </Button>
-                    ) : (
+                        <>
+                          <Button
+                            size="sm"
+                            disabled={!product.in_stock}
+                            onClick={() => addToCart(product)}
+                            className={`w-full transition-all ${
+                              justAdded
+                                ? 'bg-emerald-500 hover:bg-emerald-500 text-white'
+                                : 'bg-orange-500 hover:bg-orange-600 text-white'
+                            }`}
+                          >
+                            {justAdded ? '✓ Added' : 'Add to Cart'}
+                          </Button>
+
+                          {/* ✅ DELETE BUTTON FOR ALL PRODUCTS */}
+                          <button
+                            onClick={() => handleDeleteProduct(product.id)}
+                            className="w-full mt-2 bg-orange-300 hover:bg-red-600 text-white text-sm rounded-md"
+                          >
+                            Delete Product
+                          </button>
+                        </>
+                      ) : (
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => adjustQty(product.id, -1)}
