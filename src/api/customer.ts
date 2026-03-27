@@ -1,8 +1,11 @@
 // src/api/customer.ts
 import customerClient from './customerClient'
-
+import apiClient from './client'
 // ─── Types ────────────────────────────────────────────────────────────────────
-
+type CustomerApiExtended = typeof customerApi & {
+  createProduct: (payload: any) => Promise<any>
+  deleteProduct: (id: string) => Promise<any>
+}
 export interface Product {
   id: string
   sku: string
@@ -204,7 +207,7 @@ export const customerApi = {
 }
 
 // ADD PRODUCT
-;(customerApi as any).createProduct = async (payload: {
+;(customerApi as CustomerApiExtended).createProduct = async (payload: {
   name: string
   sku: string
   unit_cost: number
@@ -214,7 +217,7 @@ export const customerApi = {
 }
 
 // DELETE PRODUCT
-;(customerApi as any).deleteProduct = async (id: string) => {
+;(customerApi as CustomerApiExtended).deleteProduct = async (id: string) => {
   const res = await apiClient.delete(`/products/${id}`)
   return res.data
 }
