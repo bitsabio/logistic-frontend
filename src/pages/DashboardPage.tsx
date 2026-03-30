@@ -5,15 +5,16 @@ import RolesPage from './RolesPage'
 import CustomersPage from './CustomersPage'
 import WarehousePage from './WarehousePage'
 import InventoryPage from './InventoryPage'
-import OrdersAdminPage from './OrdersAdminPage'           // ← NEW
+import OrdersAdminPage from './OrdersAdminPage'  
+import ProductsPage from './ProductsAdminPage'        // ← NEW
 import { Button } from '@/components/ui/button'
 import {
   Users, LogOut, ChevronLeft, ChevronRight,
   Shield, Briefcase, Warehouse, SlidersHorizontal,
-  ClipboardList,                                          // ← NEW icon
+  ClipboardList, Package,                                         // ← NEW icon
 } from 'lucide-react'
 
-type NavItem = 'users' | 'roles' | 'customers' | 'warehouses' | 'inventory' | 'orders'  // ← orders added
+type NavItem = 'users' | 'roles' | 'customers' | 'warehouses' | 'inventory' | 'orders' | 'products'  // ← orders and products added
 
 export default function DashboardPage() {
   const { user, logout } = useAuth()
@@ -24,7 +25,7 @@ export default function DashboardPage() {
 
   const isAdminOrSuper = user?.roles?.some(r => r === 'SUPER_ADMIN' || r === 'ADMIN') ?? false
   const isOpsOrAbove   = user?.roles?.some(r => ['SUPER_ADMIN', 'ADMIN', 'OPS_MANAGER'].includes(r)) ?? false
-
+  const isSuperAdmin = user?.roles?.includes('SUPER_ADMIN') ?? false
   const NAV_ITEMS: { key: NavItem; label: string; icon: React.ReactNode; hidden?: boolean }[] = [
     {
       key: 'users',
@@ -63,6 +64,12 @@ export default function DashboardPage() {
       icon: <ClipboardList className="w-4 h-4 shrink-0" />,
       hidden: !isOpsOrAbove,
     },
+    {
+  key: 'products',
+  label: 'Products',
+  icon: <Package className="w-4 h-4 shrink-0" />,
+  hidden:!(isOpsOrAbove || isSuperAdmin),
+},
   ]
 
   const visibleNavItems = NAV_ITEMS.filter(item => !item.hidden)
@@ -169,12 +176,16 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
+            
             {activeNav === 'users'      && isAdminOrSuper && <UsersPage />}
             {activeNav === 'roles'      && isAdminOrSuper && <RolesPage />}
             {activeNav === 'customers'  && isAdminOrSuper && <CustomersPage />}
             {activeNav === 'warehouses' && isOpsOrAbove   && <WarehousePage />}
             {activeNav === 'inventory'  && isOpsOrAbove   && <InventoryPage />}
-            {activeNav === 'orders'     && isOpsOrAbove   && <OrdersAdminPage />}  {/* ← NEW */}
+            {activeNav === 'orders'     && isOpsOrAbove   && <OrdersAdminPage />}
+           {activeNav === 'products' && (isOpsOrAbove || isSuperAdmin) && (
+  <ProductsPage />
+)}
           </>
         )}
       </main>
