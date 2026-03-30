@@ -12,6 +12,8 @@ import CartPage from './CartPage'
 import OrdersPage from './OrdersPage'
 import OrderDetailPage from './OrderDetailPage'
 import CustomerProfileModal from './CustomerProfileModal'
+import ShipmentsPage from './ShipmentsPage'
+import { Truck } from 'lucide-react'
 import type { CartItem, CustomerOrderDetail } from '@/api/customer'
 
 type View =
@@ -20,6 +22,7 @@ type View =
   | { page: 'orders' }
   | { page: 'order-detail'; orderId: string }
   | { page: 'order-success'; order: CustomerOrderDetail }
+  | { page: 'shipments' }
 
 interface CustomerProfile {
   id: string
@@ -105,8 +108,9 @@ export default function CustomerDashboard() {
       : view.page
 
   const NAV = [
-    { key: 'products' as const, label: 'Browse Products', icon: Package },
-    { key: 'orders'   as const, label: 'My Orders',       icon: ClipboardList },
+    { key: 'products'  as const, label: 'Browse Products', icon: Package },
+    { key: 'orders'    as const, label: 'My Orders',       icon: ClipboardList },
+    { key: 'shipments' as const, label: 'Track Shipments', icon: Truck },
   ]
 
   return (
@@ -263,6 +267,10 @@ export default function CustomerDashboard() {
             key={ordersKey}
             onViewOrder={handleViewOrder}
           />
+        )}
+
+        {view.page === 'shipments' && (
+          <ShipmentsPage />
         )}
 
         {view.page === 'order-detail' && (
