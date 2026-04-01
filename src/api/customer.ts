@@ -1,6 +1,7 @@
 // src/api/customer.ts
 import customerClient from './customerClient'
 import apiClient from './client'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 type CustomerApiExtended = typeof customerApi & {
   createProduct: (payload: any) => Promise<any>
@@ -43,6 +44,27 @@ export interface CustomerOrder {
   created_at: string
   updated_at: string
   item_count: number
+}
+
+export interface CustomerShipment {
+  id: string
+  tracking_number: string
+  status: 'pending'|'in_transit'|'out_for_delivery'|'delivered'|'failed'|'returned'
+  estimated_delivery_at: string | null
+  actual_delivery_at: string | null
+  created_at: string
+  order_number: string
+}
+
+export interface CustomerShipmentDetail {
+  shipment: CustomerShipment
+  events: Array<{
+    id: string
+    event_type: string
+    location_name: string | null
+    notes: string | null
+    occurred_at: string
+  }>
 }
 
 export interface CustomerOrderDetail extends CustomerOrder {
@@ -202,6 +224,17 @@ export const customerApi = {
 
   cancelOrder: async (id: string): Promise<{ message: string }> => {
     const { data } = await customerClient.patch(`/customer/orders/${id}/cancel`)
+    return data
+  },
+
+  // Shipments
+  getShipments: async (): Promise<CustomerShipment[]> => {
+    const { data } = await customerClient.get('/customer/shipments')
+    return data
+  },
+
+  getShipmentDetail: async (id: string): Promise<CustomerShipmentDetail> => {
+    const { data } = await customerClient.get(`/customer/shipments/${id}`)
     return data
   },
 }
